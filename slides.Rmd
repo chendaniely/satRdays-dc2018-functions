@@ -1,0 +1,689 @@
+---
+title: "Functions"
+subtitle: "using, writing, and non-standard evaulation!!"
+author: "Daniel Chen"
+date: "2018-12-08 satRday DC"
+output:
+  xaringan::moon_reader:
+    lib_dir: libs
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+options(htwmltools.dir.version = FALSE)
+knitr::opts_chunk$set(fig.height=5)
+```
+
+# Hi!
+
+
+.pull-left[
+
+![](./img/Chen-Daniel.jpg)
+
+]
+
+.pull-right[
+
+- Research Scientist @ UVA
+- PhD Student @ VT
+- Instructor
+    - @ DataCamp
+    - @ The Carpentries
+- Author: Pandas for Everyone
+
+<center>
+<img src='./img/book.jpg' width=50%/>
+</center>
+]
+
+
+---
+# Functions
+
+They look something like this.
+
+```{r}
+my_function <- function(param1, param2, ...) {
+  # function body
+}
+```
+
+
+```{r}
+my_add <- function(x, y = 1) {
+  return(x + y)
+}
+```
+
+```{r}
+my_add(10)
+```
+
+```{r}
+my_add(10, 20)
+```
+
+---
+
+# Functions are just like other R objects
+
+```{r}
+my_add(10, 20)
+```
+
+
+```{r}
+another_add <- my_add
+```
+
+```{r}
+another_add(10, 20)
+```
+
+---
+# Anonymous functions
+
+Functions that are not assigned to a name
+
+```{r}
+# note the round brackets around the function definition
+(function(x, y = 1) {x + y})(10, 20)
+```
+
+---
+
+# Scoping
+
+Things that happen in a function stay in the function
+
+```{r}
+add_1 <- function(x) {
+  y <- 1
+  x + y
+}
+```
+
+```{r}
+x <- 1
+add_1(x)
+```
+
+```{r}
+add_1(10)
+```
+
+```{r}
+y <- 10
+add_1(100) # returns 101 not 110
+```
+
+---
+
+# Scoping search order
+
+- Things inside the function first
+
+```{r}
+my_func1 <- function() {
+  x <- 10
+  y <- 20
+  return(x + y)
+}
+my_func1()
+```
+
+---
+
+# Scoping search order
+
+- Then enclosing environment (e.g., global)
+
+```{r}
+x <- 100
+my_func_2 <- function() {
+  y <- 200
+  return(x + y)
+}
+my_func_2()
+```
+
+```{r, error=TRUE}
+rm(x)
+my_func_2()
+```
+
+---
+
+# When you find yourself repeating yourself...
+
+... more than 3 times, Write a function!
+
+```{r}
+library(urltools)
+library(magrittr)
+repos <- c(
+  'https://sourceforge.net/projects/fortranxunit/',
+  'https://ti.arc.nasa.gov/opensource/projects/pour/',
+  'https://github.com/nasa/GSAP')
+```
+
+```{r}
+suffix_extract(domain(repos[1]))$domain
+suffix_extract(domain(repos[2]))$domain
+suffix_extract(domain(repos[3]))$domain
+```
+
+---
+
+# Write a function
+
+```{r}
+get_domain <- function(url) {
+  suffix_extract(domain(url))$domain
+}
+
+get_domain('https://sourceforge.net/projects/fortranxunit/')
+get_domain('https://ti.arc.nasa.gov/opensource/projects/pour/')
+get_domain('https://github.com/nasa/GSAP')
+```
+
+---
+
+# But we still have repetative code!
+
+```{r}
+for (r in seq_along(repos)) {
+  print(get_domain(repos[[r]]))
+}
+```
+
+```{r}
+v <- c()
+for (i in seq_along(repos)) {
+  v[[i]] <- get_domain(repos[[i]])
+}
+v
+```
+
+---
+
+# seq_along is a bit more robust
+
+```{r}
+v <- c()
+for (i in seq_along(repos)) {
+  v[[i]] <- get_domain(repos[[i]])
+}
+v
+```
+
+```{r, error=TRUE}
+v <- c()
+repos <- c()
+for (i in 1:length(repos)) {
+  v[[i]] <- get_domain(repos[[r]])
+}
+```
+
+---
+
+# Loops without the `for`
+
+- similar to the 'apply' family of functions
+
+```{r}
+repos <- c(
+  'https://sourceforge.net/projects/fortranxunit/',
+  'https://ti.arc.nasa.gov/opensource/projects/pour/',
+  'https://github.com/nasa/GSAP')
+
+sapply(repos, get_domain)
+```
+
+---
+
+# `purrr`
+
+
+```{r, message=FALSE}
+library(purrr)
+map(.x = repos, .f = get_domain)
+```
+
+---
+
+# `purrr` has functions that let you pick your output type
+
+Using `map_chr` we get a character vector, instead of a list.
+
+```{r}
+map_chr(.x = repos, .f = get_domain)
+```
+
+---
+
+# Anonymous `purrr`
+
+```{r}
+library(stringr)
+
+map_chr(.x = repos, .f = function(x) get_domain(str_to_lower(x)))
+```
+
+is **exactly** the same as
+
+```{r}
+map_chr(.x = repos, .f = ~ get_domain(str_to_lower(.)))
+```
+
+---
+
+# map2
+
+```{r}
+v1 <- c(1, 2, 3)
+v2 <- c(10, 20, 30)
+
+my_add_2 <- function(x, y) {
+  x + y
+}
+```
+
+```{r}
+mapply(my_add_2, x = v1, y = v2)
+```
+
+
+```{r}
+map2_dbl(v1, v2, my_add_2)
+```
+
+---
+
+# pmap
+
+Instead of have map3, map4, etc... we have pmap!
+
+```{r}
+v1 <- c(1, 2, 3)
+v2 <- c(10, 20, 30)
+v3 <- c(100, 200, 300)
+v4 <- c(1000, 2000, 3000)
+
+my_add_4 <- function(x, y, z, a) {
+  x + y + z + a
+}
+```
+
+```{r}
+pmap_dbl(list(x = v1, y = v2, z = v3, a = v4), my_add_4)
+```
+
+---
+
+# Another thing about map
+
+If you want to map values that is not the first argument of the function,
+use anonymous functions.
+
+```{r}
+v1 <- c(1, 2, 3)
+
+my_add <- function(x = 1, y = 2) {
+  x + y
+}
+```
+
+```{r}
+map_dbl(v1, ~ my_add(x = 1, y = .))
+```
+
+---
+
+# Iterate through everything
+
+- `purrr::safely`
+- `purrr::possibly`
+- `purrr::quietly`
+
+```{r}
+v <- list(1, 'oops', 5)
+```
+
+```{r, error=TRUE}
+map(v, log)
+```
+
+```{r}
+results <- map(v, safely(log))
+```
+
+---
+
+# Look at results
+
+```{r}
+results
+```
+
+---
+
+# Get the results and/or error
+
+```{r}
+results[[1]]$result
+results[[1]]$error
+```
+
+---
+
+# Transpose
+
+```{r}
+purrr::transpose(results)
+```
+
+---
+
+# Transpose and get all results
+
+```{r}
+purrr::transpose(results)$result
+purrr::transpose(results)$error
+```
+
+---
+
+# Non-Standard Evaluation (NSE)
+
+- R gives you access to the code used in a function, not just the value itself.
+- REPL/interactive mode
+- Saves typing
+
+---
+
+# How does it know what the labels are?
+
+```{r, fig.height=5}
+library(ggplot2)
+ggplot(data = cars, aes(x = speed, y = dist)) +
+  geom_point()
+```
+
+---
+
+# It knows the expression we put in
+
+```{r, fig.height=5}
+library(ggplot2)
+ggplot(data = cars, aes(x = log(speed), y = log(dist))) +
+  geom_point()
+```
+
+---
+
+# Capture expression: substitute
+
+- instead of the value, it returns the code
+
+```{r}
+f <- function(x){
+  base::substitute(x)
+}
+```
+
+```{r}
+f(1:10)
+```
+
+```{r}
+x <- 1
+f(x)
+```
+
+```{r}
+x <- 1
+y <- 3
+f(x + log(y))
+```
+
+---
+
+# Character vector of expression: deparse
+
+```{r}
+base::deparse({
+  f <- function(x) {
+    substitute(x)
+  }
+})
+```
+
+---
+
+# Deparse returns a string
+
+- we get y because the code is `y`
+
+```{r}
+f <- function(x) substitute(x)
+g <- function(y) deparse(f(y))
+g(1:10)
+g(x)
+g(x + y ^ 2 / z + exp(a * sin(b)))
+```
+
+---
+
+# Subset
+
+```{r}
+sample_df <- data.frame(a = 1:5, b = 5:1, c = c(5, 3, 1, 4, 1))
+sample_df
+```
+
+```{r}
+subset(sample_df, a >= 4)
+```
+
+---
+
+# Write our own `subset`
+
+```{r}
+my_subset <- function(x, condition) {
+  condition_call <- substitute(condition)
+  print(condition_call)
+  r <- eval(expr = condition_call, envir = x)
+  print(r)
+  x[r, ]
+}
+```
+
+```{r}
+my_subset(sample_df, a >= 4)
+```
+
+---
+
+# Why is this a good thing?
+
+- Let's you separate the code form the back end (dplyr, dbplyr, dtplyr)
+
+- Becareful, NSE makes functions not **referentially transparent**,
+meaning if you replace the value to a function with an equlivilant object,
+you get a different result
+
+---
+
+# Tidy evaluation
+
+- https://github.com/r-lib
+- https://github.com/r-lib/rlang
+  - Low-level API for programming with R
+- https://tidyeval.tidyverse.org/
+
+---
+
+# quote and expr
+
+Give you back what you gave it
+
+```{r}
+# quote always returns input as is
+f <- function(x) base::quote(x)
+f(a + b)
+```
+
+
+```{r, warning=FALSE, message=FALSE}
+library(rlang)
+
+f <- function(x) rlang::expr(x)
+f(a + b)
+```
+
+---
+
+# substitue and enexpr
+
+What the user passed
+
+```{r}
+f <- function(x) base::substitute(x)
+f(a + b)
+```
+
+```{r}
+f <- function(x) rlang::enexpr(x)
+f(a + b)
+```
+
+---
+
+# Unquoting
+
+```{r}
+x <- rlang::expr(a + b)
+x
+```
+
+bang bang!!
+
+```{r}
+rlang::expr(!!x + z)
+```
+
+---
+
+# Using ggplot
+
+```{r}
+ggplot(data = mtcars, aes(x = cyl, y = mpg)) + geom_point()
+```
+
+---
+
+# Another plot
+
+```{r}
+ggplot(data = mtcars, aes(x = hp, y = mpg)) + geom_point()
+```
+
+---
+
+# And another
+
+```{r}
+ggplot(data = mtcars, aes(x = wt, y = mpg)) + geom_point()
+```
+
+---
+
+# Make it a function
+
+tl;dr: use !!
+
+```{r}
+my_scatterplot <- function(df, x, y) {
+  xvar <- rlang::enexpr(x)
+  yvar <- rlang::enexpr(y)
+  ggplot(data = df, aes(x = !!xvar, y = !!yvar)) + geom_point()
+}
+```
+
+---
+
+# NSE plotting function
+
+```{r}
+my_scatterplot(mtcars, cyl, mpg)
+```
+
+---
+
+# What about the environment?
+
+Remember how functions work from the beginning of the talk?
+
+```{r}
+# I just took Hadley's example
+my_mutate <- function(df, var) {
+  {{ n <- 10 }}
+  var <- rlang::enexpr(var)
+  dplyr::mutate(df, !!var)
+}
+
+df <- tibble::tibble(x = 1)
+n <- 100
+my_mutate(df, x + n)
+```
+
+---
+
+# Quosure
+
+- closure + quotation
+- captures expression and the environment
+
+---
+
+# enquo instead of enexpr
+```{r}
+# I just took Hadley's example
+my_mutate <- function(df, var) {
+  n <- 10
+  {{ var <- rlang::enquo(var) }}
+  dplyr::mutate(df, !!var)
+}
+
+df <- tibble::tibble(x = 1)
+{{ n <- 100 }}
+my_mutate(df, x + n)
+```
+
+---
+
+# tl;dr: use !!
+
+```{r, fig.height=4}
+my_select <- function(df, x) {
+  x <- rlang::enquo(x)
+  df %>%
+    dplyr::select(!!x) %>%
+    ggplot(aes(x = !!x)) + geom_histogram(bins = 20)
+}
+mtcars %>% my_select(mpg)
+```
+
+---
+
+# Thanks
+
+@chendaniely

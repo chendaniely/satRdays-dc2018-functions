@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Functions</title>
+    <meta charset="utf-8">
+    <meta name="author" content="Daniel Chen" />
+    <link href="libs/remark-css-0.0.1/default.css" rel="stylesheet" />
+    <link href="libs/remark-css-0.0.1/default-fonts.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# Functions
+## using, writing, and non-standard evaulation!!
+### Daniel Chen
+### 2018-12-08 satRday DC
+
+---
+
+
+
+
+# Hi!
+
+
+.pull-left[
+
+![](./img/Chen-Daniel.jpg)
+
+]
+
+.pull-right[
+
+- Research Scientist @ UVA
+- PhD Student @ VT
+- Instructor
+    - @ DataCamp
+    - @ The Carpentries
+- Author: Pandas for Everyone
+
+&lt;center&gt;
+&lt;img src='./img/book.jpg' width=50%/&gt;
+&lt;/center&gt;
+]
+
+
+---
+# Functions
+
+They look something like this.
+
+
+```r
+my_function &lt;- function(param1, param2, ...) {
+  # function body
+}
+```
+
+
+
+```r
+my_add &lt;- function(x, y = 1) {
+  return(x + y)
+}
+```
+
+
+```r
+my_add(10)
+```
+
+```
+## [1] 11
+```
+
+
+```r
+my_add(10, 20)
+```
+
+```
+## [1] 30
+```
+
+---
+
+# Functions are just like other R objects
+
+
+```r
+my_add(10, 20)
+```
+
+```
+## [1] 30
+```
+
+
+
+```r
+another_add &lt;- my_add
+```
+
+
+```r
+another_add(10, 20)
+```
+
+```
+## [1] 30
+```
+
+---
+# Anonymous functions
+
+Functions that are not assigned to a name
+
+
+```r
+# note the round brackets around the function definition
+(function(x, y = 1) {x + y})(10, 20)
+```
+
+```
+## [1] 30
+```
+
+---
+
+# Scoping
+
+Things that happen in a function stay in the function
+
+
+```r
+add_1 &lt;- function(x) {
+  y &lt;- 1
+  x + y
+}
+```
+
+
+```r
+x &lt;- 1
+add_1(x)
+```
+
+```
+## [1] 2
+```
+
+
+```r
+add_1(10)
+```
+
+```
+## [1] 11
+```
+
+
+```r
+y &lt;- 10
+add_1(100) # returns 101 not 110
+```
+
+```
+## [1] 101
+```
+
+---
+
+# Scoping search order
+
+- Things inside the function first
+
+
+```r
+my_func1 &lt;- function() {
+  x &lt;- 10
+  y &lt;- 20
+  return(x + y)
+}
+my_func1()
+```
+
+```
+## [1] 30
+```
+
+---
+
+# Scoping search order
+
+- Then enclosing environment (e.g., global)
+
+
+```r
+x &lt;- 100
+my_func_2 &lt;- function() {
+  y &lt;- 200
+  return(x + y)
+}
+my_func_2()
+```
+
+```
+## [1] 300
+```
+
+
+```r
+rm(x)
+my_func_2()
+```
+
+```
+## Error in my_func_2(): object 'x' not found
+```
+
+---
+
+# When you find yourself repeating yourself...
+
+... more than 3 times, Write a function!
+
+
+```r
+library(urltools)
+library(magrittr)
+repos &lt;- c(
+  'https://sourceforge.net/projects/fortranxunit/',
+  'https://ti.arc.nasa.gov/opensource/projects/pour/',
+  'https://github.com/nasa/GSAP')
+```
+
+
+```r
+suffix_extract(domain(repos[1]))$domain
+```
+
+```
+## [1] "sourceforge"
+```
+
+```r
+suffix_extract(domain(repos[2]))$domain
+```
+
+```
+## [1] "nasa"
+```
+
+```r
+suffix_extract(domain(repos[3]))$domain
+```
+
+```
+## [1] "github"
+```
+
+---
+
+# Write a function
+
+
+```r
+get_domain &lt;- function(url) {
+  suffix_extract(domain(url))$domain
+}
+
+get_domain('https://sourceforge.net/projects/fortranxunit/')
+```
+
+```
+## [1] "sourceforge"
+```
+
+```r
+get_domain('https://ti.arc.nasa.gov/opensource/projects/pour/')
+```
+
+```
+## [1] "nasa"
+```
+
+```r
+get_domain('https://github.com/nasa/GSAP')
+```
+
+```
+## [1] "github"
+```
+
+---
+
+# But we still have repetative code!
+
+
+```r
+for (r in seq_along(repos)) {
+  print(get_domain(repos[[r]]))
+}
+```
+
+```
+## [1] "sourceforge"
+## [1] "nasa"
+## [1] "github"
+```
+
+
+```r
+v &lt;- c()
+for (i in seq_along(repos)) {
+  v[[i]] &lt;- get_domain(repos[[i]])
+}
+v
+```
+
+```
+## [1] "sourceforge" "nasa"        "github"
+```
+
+---
+
+# seq_along is a bit more robust
+
+
+```r
+v &lt;- c()
+for (i in seq_along(repos)) {
+  v[[i]] &lt;- get_domain(repos[[i]])
+}
+v
+```
+
+```
+## [1] "sourceforge" "nasa"        "github"
+```
+
+
+```r
+v &lt;- c()
+repos &lt;- c()
+for (i in 1:length(repos)) {
+  v[[i]] &lt;- get_domain(repos[[r]])
+}
+```
+
+```
+## Error in get_component_(x, 1): Not compatible with STRSXP: [type=NULL].
+```
+
+---
+
+# Loops without the `for`
+
+- similar to the 'apply' family of functions
+
+
+```r
+repos &lt;- c(
+  'https://sourceforge.net/projects/fortranxunit/',
+  'https://ti.arc.nasa.gov/opensource/projects/pour/',
+  'https://github.com/nasa/GSAP')
+
+sapply(repos, get_domain)
+```
+
+```
+##    https://sourceforge.net/projects/fortranxunit/ 
+##                                     "sourceforge" 
+## https://ti.arc.nasa.gov/opensource/projects/pour/ 
+##                                            "nasa" 
+##                      https://github.com/nasa/GSAP 
+##                                          "github"
+```
+
+---
+
+# `purrr`
+
+
+
+```r
+library(purrr)
+map(.x = repos, .f = get_domain)
+```
+
+```
+## [[1]]
+## [1] "sourceforge"
+## 
+## [[2]]
+## [1] "nasa"
+## 
+## [[3]]
+## [1] "github"
+```
+
+---
+
+# `purrr` has functions that let you pick your output type
+
+Using `map_chr` we get a character vector, instead of a list.
+
+
+```r
+map_chr(.x = repos, .f = get_domain)
+```
+
+```
+## [1] "sourceforge" "nasa"        "github"
+```
+
+---
+
+# Anonymous `purrr`
+
+
+```r
+library(stringr)
+
+map_chr(.x = repos, .f = function(x) get_domain(str_to_lower(x)))
+```
+
+```
+## [1] "sourceforge" "nasa"        "github"
+```
+
+is **exactly** the same as
+
+
+```r
+map_chr(.x = repos, .f = ~ get_domain(str_to_lower(.)))
+```
+
+```
+## [1] "sourceforge" "nasa"        "github"
+```
+
+---
+
+# map2
+
+
+```r
+v1 &lt;- c(1, 2, 3)
+v2 &lt;- c(10, 20, 30)
+
+my_add_2 &lt;- function(x, y) {
+  x + y
+}
+```
+
+
+```r
+mapply(my_add_2, x = v1, y = v2)
+```
+
+```
+## [1] 11 22 33
+```
+
+
+
+```r
+map2_dbl(v1, v2, my_add_2)
+```
+
+```
+## [1] 11 22 33
+```
+
+---
+
+# pmap
+
+Instead of have map3, map4, etc... we have pmap!
+
+
+```r
+v1 &lt;- c(1, 2, 3)
+v2 &lt;- c(10, 20, 30)
+v3 &lt;- c(100, 200, 300)
+v4 &lt;- c(1000, 2000, 3000)
+
+my_add_4 &lt;- function(x, y, z, a) {
+  x + y + z + a
+}
+```
+
+
+```r
+pmap_dbl(list(x = v1, y = v2, z = v3, a = v4), my_add_4)
+```
+
+```
+## [1] 1111 2222 3333
+```
+
+---
+
+# Another thing about map
+
+If you want to map values that is not the first argument of the function,
+use anonymous functions.
+
+
+```r
+v1 &lt;- c(1, 2, 3)
+
+my_add &lt;- function(x = 1, y = 2) {
+  x + y
+}
+```
+
+
+```r
+map_dbl(v1, ~ my_add(x = 1, y = .))
+```
+
+```
+## [1] 2 3 4
+```
+
+---
+
+# Iterate through everything
+
+- `purrr::safely`
+- `purrr::possibly`
+- `purrr::quietly`
+
+
+```r
+v &lt;- list(1, 'oops', 5)
+```
+
+
+```r
+map(v, log)
+```
+
+```
+## Error in log(x = x, base = base): non-numeric argument to mathematical function
+```
+
+
+```r
+results &lt;- map(v, safely(log))
+```
+
+---
+
+# Look at results
+
+
+```r
+results
+```
+
+```
+## [[1]]
+## [[1]]$result
+## [1] 0
+## 
+## [[1]]$error
+## NULL
+## 
+## 
+## [[2]]
+## [[2]]$result
+## NULL
+## 
+## [[2]]$error
+## &lt;simpleError in log(x = x, base = base): non-numeric argument to mathematical function&gt;
+## 
+## 
+## [[3]]
+## [[3]]$result
+## [1] 1.609438
+## 
+## [[3]]$error
+## NULL
+```
+
+---
+
+# Get the results and/or error
+
+
+```r
+results[[1]]$result
+```
+
+```
+## [1] 0
+```
+
+```r
+results[[1]]$error
+```
+
+```
+## NULL
+```
+
+---
+
+# Transpose
+
+
+```r
+purrr::transpose(results)
+```
+
+```
+## $result
+## $result[[1]]
+## [1] 0
+## 
+## $result[[2]]
+## NULL
+## 
+## $result[[3]]
+## [1] 1.609438
+## 
+## 
+## $error
+## $error[[1]]
+## NULL
+## 
+## $error[[2]]
+## &lt;simpleError in log(x = x, base = base): non-numeric argument to mathematical function&gt;
+## 
+## $error[[3]]
+## NULL
+```
+
+---
+
+# Transpose and get all results
+
+
+```r
+purrr::transpose(results)$result
+```
+
+```
+## [[1]]
+## [1] 0
+## 
+## [[2]]
+## NULL
+## 
+## [[3]]
+## [1] 1.609438
+```
+
+```r
+purrr::transpose(results)$error
+```
+
+```
+## [[1]]
+## NULL
+## 
+## [[2]]
+## &lt;simpleError in log(x = x, base = base): non-numeric argument to mathematical function&gt;
+## 
+## [[3]]
+## NULL
+```
+
+---
+
+# Non-Standard Evaluation (NSE)
+
+- R gives you access to the code used in a function, not just the value itself.
+- REPL/interactive mode
+- Saves typing
+
+---
+
+# How does it know what the labels are?
+
+
+```r
+library(ggplot2)
+ggplot(data = cars, aes(x = speed, y = dist)) +
+  geom_point()
+```
+
+![](slides_files/figure-html/unnamed-chunk-42-1.png)&lt;!-- --&gt;
+
+---
+
+# It knows the expression we put in
+
+
+```r
+library(ggplot2)
+ggplot(data = cars, aes(x = log(speed), y = log(dist))) +
+  geom_point()
+```
+
+![](slides_files/figure-html/unnamed-chunk-43-1.png)&lt;!-- --&gt;
+
+---
+
+# Capture expression: substitute
+
+- instead of the value, it returns the code
+
+
+```r
+f &lt;- function(x){
+  base::substitute(x)
+}
+```
+
+
+```r
+f(1:10)
+```
+
+```
+## 1:10
+```
+
+
+```r
+x &lt;- 1
+f(x)
+```
+
+```
+## x
+```
+
+
+```r
+x &lt;- 1
+y &lt;- 3
+f(x + log(y))
+```
+
+```
+## x + log(y)
+```
+
+---
+
+# Character vector of expression: deparse
+
+
+```r
+base::deparse({
+  f &lt;- function(x) {
+    substitute(x)
+  }
+})
+```
+
+```
+## [1] "function (x) "     "{"                 "    substitute(x)"
+## [4] "}"
+```
+
+---
+
+# Deparse returns a string
+
+- we get y because the code is `y`
+
+
+```r
+f &lt;- function(x) substitute(x)
+g &lt;- function(y) deparse(f(y))
+g(1:10)
+```
+
+```
+## [1] "y"
+```
+
+```r
+g(x)
+```
+
+```
+## [1] "y"
+```
+
+```r
+g(x + y ^ 2 / z + exp(a * sin(b)))
+```
+
+```
+## [1] "y"
+```
+
+---
+
+# Subset
+
+
+```r
+sample_df &lt;- data.frame(a = 1:5, b = 5:1, c = c(5, 3, 1, 4, 1))
+sample_df
+```
+
+```
+##   a b c
+## 1 1 5 5
+## 2 2 4 3
+## 3 3 3 1
+## 4 4 2 4
+## 5 5 1 1
+```
+
+
+```r
+subset(sample_df, a &gt;= 4)
+```
+
+```
+##   a b c
+## 4 4 2 4
+## 5 5 1 1
+```
+
+---
+
+# Write our own `subset`
+
+
+```r
+my_subset &lt;- function(x, condition) {
+  condition_call &lt;- substitute(condition)
+  print(condition_call)
+  r &lt;- eval(expr = condition_call, envir = x)
+  print(r)
+  x[r, ]
+}
+```
+
+
+```r
+my_subset(sample_df, a &gt;= 4)
+```
+
+```
+## a &gt;= 4
+## [1] FALSE FALSE FALSE  TRUE  TRUE
+```
+
+```
+##   a b c
+## 4 4 2 4
+## 5 5 1 1
+```
+
+---
+
+# Why is this a good thing?
+
+- Let's you separate the code form the back end (dplyr, dbplyr, dtplyr)
+
+- Becareful, NSE makes functions not **referentially transparent**,
+meaning if you replace the value to a function with an equlivilant object,
+you get a different result
+
+---
+
+# Tidy evaluation
+
+- https://github.com/r-lib
+- https://github.com/r-lib/rlang
+  - Low-level API for programming with R
+- https://tidyeval.tidyverse.org/
+
+---
+
+# quote and expr
+
+Give you back what you gave it
+
+
+```r
+# quote always returns input as is
+f &lt;- function(x) base::quote(x)
+f(a + b)
+```
+
+```
+## x
+```
+
+
+
+```r
+library(rlang)
+
+f &lt;- function(x) rlang::expr(x)
+f(a + b)
+```
+
+```
+## x
+```
+
+---
+
+# substitue and enexpr
+
+What the user passed
+
+
+```r
+f &lt;- function(x) base::substitute(x)
+f(a + b)
+```
+
+```
+## a + b
+```
+
+
+```r
+f &lt;- function(x) rlang::enexpr(x)
+f(a + b)
+```
+
+```
+## a + b
+```
+
+---
+
+# Unquoting
+
+
+```r
+x &lt;- rlang::expr(a + b)
+x
+```
+
+```
+## a + b
+```
+
+bang bang!!
+
+
+```r
+rlang::expr(!!x + z)
+```
+
+```
+## a + b + z
+```
+
+---
+
+# Using ggplot
+
+
+```r
+ggplot(data = mtcars, aes(x = cyl, y = mpg)) + geom_point()
+```
+
+![](slides_files/figure-html/unnamed-chunk-60-1.png)&lt;!-- --&gt;
+
+---
+
+# Another plot
+
+
+```r
+ggplot(data = mtcars, aes(x = hp, y = mpg)) + geom_point()
+```
+
+![](slides_files/figure-html/unnamed-chunk-61-1.png)&lt;!-- --&gt;
+
+---
+
+# And another
+
+
+```r
+ggplot(data = mtcars, aes(x = wt, y = mpg)) + geom_point()
+```
+
+![](slides_files/figure-html/unnamed-chunk-62-1.png)&lt;!-- --&gt;
+
+---
+
+# Make it a function
+
+tl;dr: use !!
+
+
+```r
+my_scatterplot &lt;- function(df, x, y) {
+  xvar &lt;- rlang::enexpr(x)
+  yvar &lt;- rlang::enexpr(y)
+  ggplot(data = df, aes(x = !!xvar, y = !!yvar)) + geom_point()
+}
+```
+
+---
+
+# NSE plotting function
+
+
+```r
+my_scatterplot(mtcars, cyl, mpg)
+```
+
+![](slides_files/figure-html/unnamed-chunk-64-1.png)&lt;!-- --&gt;
+
+---
+
+# What about the environment?
+
+Remember how functions work from the beginning of the talk?
+
+
+```r
+# I just took Hadley's example
+my_mutate &lt;- function(df, var) {
+*   n &lt;- 10 
+  var &lt;- rlang::enexpr(var)
+  dplyr::mutate(df, !!var)
+}
+
+df &lt;- tibble::tibble(x = 1)
+n &lt;- 100
+my_mutate(df, x + n)
+```
+
+```
+## # A tibble: 1 x 2
+##       x `x + n`
+##   &lt;dbl&gt;   &lt;dbl&gt;
+## 1     1      11
+```
+
+---
+
+# Quosure
+
+- closure + quotation
+- captures expression and the environment
+
+---
+
+# enquo instead of enexpr
+
+```r
+# I just took Hadley's example
+my_mutate &lt;- function(df, var) {
+  n &lt;- 10
+*   var &lt;- rlang::enquo(var) 
+  dplyr::mutate(df, !!var)
+}
+
+df &lt;- tibble::tibble(x = 1)
+* n &lt;- 100 
+my_mutate(df, x + n)
+```
+
+```
+## # A tibble: 1 x 2
+##       x `x + n`
+##   &lt;dbl&gt;   &lt;dbl&gt;
+## 1     1     101
+```
+
+---
+
+# tl;dr: use !!
+
+
+```r
+my_select &lt;- function(df, x) {
+  x &lt;- rlang::enquo(x)
+  df %&gt;%
+    dplyr::select(!!x) %&gt;%
+    ggplot(aes(x = !!x)) + geom_histogram(bins = 20)
+}
+mtcars %&gt;% my_select(mpg)
+```
+
+![](slides_files/figure-html/unnamed-chunk-67-1.png)&lt;!-- --&gt;
+
+---
+
+# Thanks
+
+@chendaniely
+    </textarea>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function() {
+  var d = document, s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})();</script>
+
+<script>
+(function() {
+  var i, text, code, codes = document.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+})();
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
